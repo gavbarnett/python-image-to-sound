@@ -40,11 +40,10 @@ def main():
             rect.append([])
            
             rect[nw] = np.power(255-np.mean(np.mean(np.mean(horizontal_img[np.meshgrid(np.arange(0,height-h,h),np.arange(h,height,h)),w*nw:w*nw+w],2),1),0),5)/(math.pow(255,5)*quant_v)
-            #print(rect[nw])
 
             rect_sum.append(sum(rect[nw]))
             t_tot.append(0)
-            for nv in range(quant_v-1):
+            for nv in range(quant_v):
                 t_tot[nw] += rect[nw][nv]*t[nv]
 
         #t_tot = stereo_zipper(tonewindow(t_tot[0],4), tonewindow(t_tot[1],4))
@@ -65,6 +64,7 @@ def main():
 def tonemaker(f, fs):
     duration = 1   # in seconds, may be float
     samples = (np.sin(2*np.pi*np.arange(fs*duration)*f/fs)).astype(np.float32)
+    samples *= np.hanning(fs*duration)
     return (samples)
 
 def stereo_zipper(left, right):
