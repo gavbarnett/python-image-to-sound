@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import time
 import math
+import copy
 
 quant_v = 10
 quant_h = 10
@@ -24,7 +25,7 @@ def main():
                 channels=2,
                 rate=fs,
                 output=True)
-
+    oldrect = []
     while(True):
         ret, frame = cap.read()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -38,20 +39,29 @@ def main():
         t_tot = []
         f_tot = [[],[]]
         for nw in range(quant_h):
-            #linedw = cv2.line(horizontal_img, (w*nw, 0), (w*nw, height), (50), 2)
             rect.append([])
         
             rect[nw] = np.power(255-np.mean(np.mean(np.mean(horizontal_img[np.meshgrid(np.arange(0,height-h,h),np.arange(h,height,h)),w*nw:w*nw+w],3),2),0),5)/(math.pow(255,5)*quant_v)
-            #print(rect[nw])
             rect_sum.append(sum(rect[nw]))
             t_tot.append(0)
-            for nv in range(quant_v-1):
-                #lined = cv2.line(linedw, (0, h*nv), (width, h*nv), (50), 2)
-                t_tot[nw] += rect[nw][nv]*t[nv]
+
+            if not(oldrect):
+                for nv in range(quant_v-1):
+                    t_tot[nw] += rect[nw][nv]*t[nv]
+            else:
+                for nv in range(quant_v-1):
+                    temp = copy.copy(t[nv])
+                    temp *= np.ogrid[oldrect[nw][nv]:rect[nw][nv]:1j*fs]
+                    t_tot[nw] += temp
+                    #print(np.ogrid[oldrect[nw][nv]:rect[nw][nv]:42000j], t[nv])
+            t_tot[nw] /= 0.5*quant_h # this could be improved with an exponent.
+
+        oldrect = copy.deepcopy(rect)
+
         #t_tot = stereo_zipper(tonewindow(t_tot[0],4), tonewindow(t_tot[1],4))
         f_tot[0] = t_tot[0]
         f_tot[1] = t_tot[quant_h-1]
-        for nw in range(1,quant_h-2):
+        for nw in range(1,quant_h-2): # this could be improved with an exponent.
             f_tot[0] += t_tot[nw]*nw/quant_h
             f_tot[1] += t_tot[nw]*(1-nw/quant_h)
         t_tot = stereo_zipper(f_tot[0], f_tot[1])
@@ -70,7 +80,7 @@ def main():
 def tonemaker(f, fs):
     duration = 1   # in seconds, may be float
     samples = (np.sin(2*np.pi*np.arange(fs*duration)*f/fs)).astype(np.float32)
-    samples *= np.hanning(fs*duration)
+    #samples *= np.hanning(fs*duration)
     return (samples)
 
 def stereo_zipper(left, right):
