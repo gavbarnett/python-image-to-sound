@@ -5,6 +5,7 @@ import time
 import math
 
 quant_v = 10
+quant_h = 10
 
 def main():
     p = pyaudio.PyAudio()
@@ -31,11 +32,12 @@ def main():
         height, width = gray.shape
 
         h = round(height/quant_v)
-        w = round(width/2)
+        w = round(width/quant_h)
         rect = []
         rect_sum = []
         t_tot = []
-        for nw in range(2):
+        f_tot = [[],[]]
+        for nw in range(quant_h):
             #linedw = cv2.line(horizontal_img, (w*nw, 0), (w*nw, height), (50), 2)
             rect.append([])
         
@@ -47,8 +49,12 @@ def main():
                 #lined = cv2.line(linedw, (0, h*nv), (width, h*nv), (50), 2)
                 t_tot[nw] += rect[nw][nv]*t[nv]
         #t_tot = stereo_zipper(tonewindow(t_tot[0],4), tonewindow(t_tot[1],4))
-        t_sum = sum(t_tot[0]) + sum(t_tot[1])
-        t_tot = stereo_zipper(t_tot[0], t_tot[1])
+        f_tot[0] = t_tot[0]
+        f_tot[1] = t_tot[quant_h-1]
+        for nw in range(1,quant_h-2):
+            f_tot[0] += t_tot[nw]*nw/quant_h
+            f_tot[1] += t_tot[nw]*(1-nw/quant_h)
+        t_tot = stereo_zipper(f_tot[0], f_tot[1])
         stream.write(t_tot)
 
         cv2.imshow('frame1',horizontal_img)
